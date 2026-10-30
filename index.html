@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dompet Sat-Set</title>
+  <!-- Tailwind CSS CDN untuk Tampilan Modern & Responsif HP -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN untuk Pie Chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .fade-anim { transition: opacity 0.5s ease-in-out; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <!-- LAYAR LOGIN (Tampil jika belum login) -->
+  <div id="loginSection" class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full text-center border border-slate-100">
+      <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl font-bold">
+        💰
+      </div>
+      <h1 class="text-2xl font-bold text-slate-800 mb-1">Dompet Sat-Set</h1>
+      <p class="text-sm text-slate-500 mb-6">Pencatatan keuangan aman & tersinkronisasi.</p>
+      <button id="btnLogin" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-3 transition">
+        <svg class="w-5 h-5" viewBox="0 0 24 24">
+          <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/>
+          <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
+          <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.1s.7 5.4 1.9 7.8l3.7-2.9z"/>
+          <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16.5C3.7 20.3 7.5 23.5 12 23.5z"/>
+        </svg>
+        Masuk dengan Akun Google
+      </button>
+      <div id="loginStatus" class="mt-4 text-xs text-rose-500 font-medium"></div>
+    </div>
+  </div>
+
+  <!-- APLIKASI UTAMA (Tampil setelah login) -->
+  <div id="appSection" class="hidden max-w-2xl mx-auto pb-24">
+    
+    <!-- Topbar & Saldo Utama -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400" id="userEmailDisplay">User</span>
+        <button id="btnLogout" class="text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 px-3 py-1.5 rounded-lg">Keluar</button>
+      </div>
+
+      <!-- Card Saldo Berjalan -->
+      <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden">
+        <div class="relative z-10">
+          <p class="text-xs text-slate-300 font-medium mb-1">Sisa Saldo Rekening Saat Ini</p>
+          <h2 id="currentBalanceDisplay" class="text-3xl font-extrabold tracking-tight">Rp 0</h2>
+        </div>
+        <!-- Card Mini Tabungan Tahunan -->
+        <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs">
+          <span class="text-slate-300 flex items-center gap-1.5">
+            🏆 Sisa Jajan Ditabung (<span id="currentYearDisplay">2026</span>):
+          </span>
+          <span id="annualSavingsDisplay" class="font-bold text-emerald-400 text-sm">Rp 0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Konten Utama: 3 Tab -->
+    <main class="p-4">
+      
+      <!-- TAB 1: FORM CATAT CEPAT (SAT-SET) -->
+      <section id="tab-input" class="space-y-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+            ⚡ Catat Mutasi
+          </h3>
+          
+          <form id="txForm" class="space-y-3.5">
+            <!-- Pilihan Tipe Transaksi -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 mb-1">Jenis Mutasi</label>
+              <select id="txType" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-slate-900 outline-none">
+                <option value="PENGELUARAN">🔴 Pengeluaran Jajan</option>
+                <option value="PEMASUKAN">🟢 Pemasukan Lain</option>
+                <option value="UANG_JAJAN">📥 Uang Jajan / Jatah Baru Turun (+)</option>
+                <option value="TABUNGAN">🏦 Pindah Sisa ke Tabungan (-)</option>
+                <option value="PENYESUAIAN">⚖️ Penyesuaian Saldo / Biaya Admin</option>
+              </select>
+            </div>
+
+            <!-- Nominal & Kategori -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Nominal (Rp)</label>
+                <input type="number" id="txAmount" required placeholder="Contoh: 25000" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-slate-900 outline-none">
+              </div>
+              <div id="categoryGroup">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Kategori</label>
+                <select id="txCategory" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-slate-900 outline-none">
+                  <!-- Diisi lewat JS -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Keterangan & Tanggal/Jam -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Keterangan</label>
+                <input type="text" id="txNote" placeholder="Beli kopi, jajan cilok, dll" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-slate-900 outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Waktu Transaksi</label>
+                <input type="datetime-local" id="txDatetime" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-slate-900 outline-none">
+              </div>
+            </div>
+
+            <button type="submit" id="btnSubmitTx" class="w-full mt-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+              <span>Simpan Transaksi</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Slideshow Teks Imbauan / Pengingat -->
+        <div class="bg-amber-50/70 border border-amber-200/60 rounded-2xl p-4 text-center">
+          <p class="text-xs text-amber-700 font-semibold uppercase tracking-wider mb-1">💡 Pengingat Diri</p>
+          <p id="slideshowText" class="text-sm font-medium text-slate-700 italic fade-anim min-h-[40px] flex items-center justify-center">
+            "Sisa uang bulan ini adalah tabungan masa depanmu."
+          </p>
+        </div>
+      </section>
+
+      <!-- TAB 2: REKAP BULANAN & MUTASI -->
+      <section id="tab-recap" class="hidden space-y-4">
+        <!-- Filter Bulan -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
+          <label class="text-xs font-bold text-slate-600">Pilih Periode:</label>
+          <input type="month" id="monthFilter" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-slate-900">
+        </div>
+
+        <!-- Kartu Rangkuman Bulan Terpilih -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center text-xs">
+          <div class="bg-white p-3 rounded-xl border border-slate-200">
+            <span class="text-slate-400 block mb-1">Total Belanja</span>
+            <span id="recapExpense" class="font-bold text-rose-600 text-sm">Rp 0</span>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-slate-200">
+            <span class="text-slate-400 block mb-1">Pemasukan Lain</span>
+            <span id="recapIncome" class="font-bold text-emerald-600 text-sm">Rp 0</span>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
+            <span class="text-slate-400 block mb-1">Disimpan ke Tabungan</span>
+            <span id="recapSavings" class="font-bold text-indigo-600 text-sm">Rp 0</span>
+          </div>
+        </div>
+
+        <!-- Pie Chart Kategori Belanja -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200">
+          <h4 class="text-xs font-bold text-slate-600 uppercase mb-3 text-center">Porsi Pengeluaran Jajan</h4>
+          <div class="max-w-[260px] mx-auto">
+            <canvas id="expenseChart"></canvas>
+          </div>
+          <p id="chartEmptyNotice" class="text-xs text-center text-slate-400 mt-2 hidden">Belum ada pengeluaran di bulan ini.</p>
+        </div>
+
+        <!-- Tabel Riwayat Mutasi -->
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          <div class="p-3.5 border-b border-slate-100 font-bold text-xs text-slate-600 flex items-center justify-between">
+            <span>Riwayat Transaksi Bulan Ini</span>
+            <span id="txCountBadge" class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-[10px]">0 data</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-400 border-b border-slate-100">
+                <tr>
+                  <th class="py-2.5 px-3 font-semibold">Waktu</th>
+                  <th class="py-2.5 px-3 font-semibold">Keterangan</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Nominal</th>
+                  <th class="py-2.5 px-2 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="txTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <!-- Diisi via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: PENGATURAN & ARSIP -->
+      <section id="tab-settings" class="hidden space-y-4">
+        <!-- Kelola Kategori -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200">
+          <h4 class="text-sm font-bold text-slate-800 mb-2">Kelola Kategori Belanja</h4>
+          <div class="flex gap-2 mb-3">
+            <input type="text" id="newCategoryInput" placeholder="Tambah kategori baru..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none">
+            <button id="btnAddCategory" class="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-semibold">Tambah</button>
+          </div>
+          <div id="categoryChips" class="flex flex-wrap gap-1.5">
+            <!-- Chip kategori dibuat via JS -->
+          </div>
+        </div>
+
+        <!-- Kelola Teks Imbauan Slideshow -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200">
+          <h4 class="text-sm font-bold text-slate-800 mb-2">Kelola Kalimat Imbauan</h4>
+          <div class="flex gap-2 mb-3">
+            <input type="text" id="newQuoteInput" placeholder="Tulis kalimat pengingat..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none">
+            <button id="btnAddQuote" class="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-semibold">Tambah</button>
+          </div>
+          <ul id="quoteList" class="space-y-2 text-xs divide-y divide-slate-100">
+            <!-- List kutipan via JS -->
+          </ul>
+        </div>
+
+        <!-- Ekspor & Pembersihan Data -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 space-y-3">
+          <h4 class="text-sm font-bold text-slate-800">Arsip & Cadangan Data</h4>
+          <p class="text-xs text-slate-500">Unduh seluruh data mutasimu dari awal dalam format CSV rapi untuk Excel/Google Sheets.</p>
+          <button id="btnExportCSV" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2">
+            📥 Unduh Seluruh Data (CSV)
+          </button>
+          <div class="pt-3 border-t border-slate-100">
+            <p class="text-xs text-rose-500 font-semibold mb-2">Zona Berbahaya</p>
+            <button id="btnPurgeData" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold py-2.5 px-4 rounded-xl text-xs transition border border-rose-200">
+              🗑️ Bersihkan Seluruh Data
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar (HP Friendly) -->
+    <nav class="fixed bottom-0 left-0 right-0 max-w-2xl mx-auto bg-white/95 backdrop-blur border-t border-slate-200 flex justify-around p-2 z-40">
+      <button class="nav-tab active flex flex-col items-center py-1 px-3 text-slate-900 font-bold text-[11px]" data-tab="tab-input">
+        <span class="text-lg">⚡</span> Catat
+      </button>
+      <button class="nav-tab flex flex-col items-center py-1 px-3 text-slate-400 font-medium text-[11px]" data-tab="tab-recap">
+        <span class="text-lg">📊</span> Rekap
+      </button>
+      <button class="nav-tab flex flex-col items-center py-1 px-3 text-slate-400 font-medium text-[11px]" data-tab="tab-settings">
+        <span class="text-lg">⚙️</span> Pengaturan
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- FIREBASE & SCRIPT LOGIC (ES MODULE) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // ==========================================
+    // 1. MASUKKAN KONFIGURASI FIREBASE KAMU DI SINI
+    // ==========================================
+    const firebaseConfig = {
+    apiKey: "AIzaSyD7fsmofxp9wmnshho5JCr4Lhr_03hwV38",
+    authDomain: "duit-rbk.firebaseapp.com",
+    projectId: "duit-rbk",
+    storageBucket: "duit-rbk.firebasestorage.app",
+    messagingSenderId: "742646880590",
+    appId: "1:742646880590:web:408fd19c7e7438ccabe61f"
+  };
+
+    // ==========================================
+    // 2. MASUKKAN EMAIL GOOGLE PRIBADIMU DI SINI
+    // ==========================================
+    const MY_ALLOWED_EMAIL = "rainerbenedictk@gmail.com"; 
+
+    // Inisialisasi Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    let currentUser = null;
+    let allTransactions = [];
+    let customCategories = ["Makanan & Minuman", "Jajan / Kopi", "Transportasi", "Belanja Pokok", "Tagihan / Admin", "Hiburan"];
+    let customQuotes = [
+      "Inget sisa saldo sebelum checkout!",
+      "Yakin ini kebutuhan, bukan sekadar fomo?",
+      "Sisa uang bulan ini adalah tabungan masa depanmu.",
+      "Jajan boleh, tapi catatnya jangan skip!"
+    ];
+    let chartInstance = null;
+
+    // Set input datetime default ke waktu sekarang
+    const setNowDateTime = () => {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById('txDatetime').value = now.toISOString().slice(0,16);
+    };
+
+    // Helper Rupiah
+    const formatRp = (num) => "Rp " + Number(num || 0).toLocaleString("id-ID");
+
+    // AUTHENTICATION
+    document.getElementById('btnLogin').addEventListener('click', async () => {
+      try {
+        const res = await signInWithPopup(auth, provider);
+        if (res.user.email.toLowerCase() !== MY_ALLOWED_EMAIL.toLowerCase()) {
+          document.getElementById('loginStatus').innerText = "Akses ditolak: Hanya email pemilik yang diizinkan.";
+          await signOut(auth);
+        }
+      } catch (err) {
+        document.getElementById('loginStatus').innerText = "Gagal login: " + err.message;
+      }
+    });
+
+    document.getElementById('btnLogout').addEventListener('click', () => signOut(auth));
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user && user.email.toLowerCase() === MY_ALLOWED_EMAIL.toLowerCase()) {
+        currentUser = user;
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('appSection').classList.remove('hidden');
+        document.getElementById('userEmailDisplay').innerText = user.email;
+        
+        // Inisialisasi default filter bulan saat ini
+        const today = new Date();
+        const curMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+        document.getElementById('monthFilter').value = curMonthStr;
+        document.getElementById('currentYearDisplay').innerText = today.getFullYear();
+        
+        setNowDateTime();
+        await loadSettings();
+        initRealtimeListener();
+        startQuoteSlideshow();
+      } else {
+        currentUser = null;
+        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('appSection').classList.add('hidden');
+      }
+    });
+
+    // PENGATURAN KATEGORI & KUTIPAN DI FIRESTORE
+    async function loadSettings() {
+      const docRef = doc(db, `users/${currentUser.uid}/meta/settings`);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.categories) customCategories = data.categories;
+        if (data.quotes) customQuotes = data.quotes;
+      }
+      renderCategoryDropdown();
+      renderCategorySettings();
+      renderQuoteSettings();
+    }
+
+    async function saveSettings() {
+      const docRef = doc(db, `users/${currentUser.uid}/meta/settings`);
+      await setDoc(docRef, { categories: customCategories, quotes: customQuotes });
+      renderCategoryDropdown();
+      renderCategorySettings();
+      renderQuoteSettings();
+    }
+
+    function renderCategoryDropdown() {
+      const select = document.getElementById('txCategory');
+      select.innerHTML = customCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function renderCategorySettings() {
+      const container = document.getElementById('categoryChips');
+      container.innerHTML = customCategories.map((c, idx) => `
+        <span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs flex items-center gap-1.5 font-medium">
+          ${c}
+          <button onclick="window.removeCategory(${idx})" class="text-rose-500 hover:text-rose-700 font-bold">&times;</button>
+        </span>
+      `).join('');
+    }
+
+    window.removeCategory = async (index) => {
+      customCategories.splice(index, 1);
+      await saveSettings();
+    };
+
+    document.getElementById('btnAddCategory').addEventListener('click', async () => {
+      const input = document.getElementById('newCategoryInput');
+      const val = input.value.trim();
+      if (val && !customCategories.includes(val)) {
+        customCategories.push(val);
+        input.value = '';
+        await saveSettings();
+      }
+    });
+
+    function renderQuoteSettings() {
+      const list = document.getElementById('quoteList');
+      list.innerHTML = customQuotes.map((q, idx) => `
+        <li class="flex items-center justify-between py-1.5">
+          <span class="text-slate-600">"${q}"</span>
+          <button onclick="window.removeQuote(${idx})" class="text-rose-500 font-bold px-2">&times;</button>
+        </li>
+      `).join('');
+    }
+
+    window.removeQuote = async (index) => {
+      customQuotes.splice(index, 1);
+      await saveSettings();
+    };
+
+    document.getElementById('btnAddQuote').addEventListener('click', async () => {
+      const input = document.getElementById('newQuoteInput');
+      const val = input.value.trim();
+      if (val) {
+        customQuotes.push(val);
+        input.value = '';
+        await saveSettings();
+      }
+    });
+
+    // SLIDESHOW TEKS
+    let quoteIdx = 0;
+    function startQuoteSlideshow() {
+      const el = document.getElementById('slideshowText');
+      setInterval(() => {
+        if (!customQuotes.length) return;
+        el.style.opacity = 0;
+        setTimeout(() => {
+          quoteIdx = (quoteIdx + 1) % customQuotes.length;
+          el.innerText = `"${customQuotes[quoteIdx]}"`;
+          el.style.opacity = 1;
+        }, 500);
+      }, 7000);
+    }
+
+    // REALTIME DATABASE LISTENER
+    function initRealtimeListener() {
+      const q = query(collection(db, `users/${currentUser.uid}/transactions`), orderBy('datetime', 'desc'));
+      onSnapshot(q, (snapshot) => {
+        allTransactions = [];
+        snapshot.forEach(doc => allTransactions.push({ id: doc.id, ...doc.data() }));
+        recalculateAndRender();
+      });
+    }
+
+    // SUBMIT TRANSAKSI
+    document.getElementById('txForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btnSubmitTx');
+      btn.disabled = true;
+      btn.innerText = "Menyimpan...";
+
+      try {
+        const type = document.getElementById('txType').value;
+        const amount = Number(document.getElementById('txAmount').value);
+        const category = (type === 'PENGELUARAN' || type === 'PEMASUKAN') ? document.getElementById('txCategory').value : '-';
+        const note = document.getElementById('txNote').value.trim() || type;
+        const datetime = document.getElementById('txDatetime').value;
+
+        await addDoc(collection(db, `users/${currentUser.uid}/transactions`), {
+          type,
+          amount,
+          category,
+          note,
+          datetime,
+          createdAt: Date.now()
+        });
+
+        // Reset form
+        document.getElementById('txAmount').value = '';
+        document.getElementById('txNote').value = '';
+        setNowDateTime();
+      } catch (err) {
+        alert("Gagal simpan: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Simpan Transaksi";
+      }
+    });
+
+    // HITUNG ULANG SALDO & TAMPILKAN DATA
+    function recalculateAndRender() {
+      // 1. Hitung Saldo Berjalan Keseluruhan
+      let balance = 0;
+      let annualSavings = 0;
+      const currentYear = new Date().getFullYear().toString();
+
+      // Urutkan dari terlama ke terbaru untuk hitung saldo riil
+      const chronological = [...allTransactions].sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
+      
+      chronological.forEach(tx => {
+        if (tx.type === 'PEMASUKAN' || tx.type === 'UANG_JAJAN') {
+          balance += tx.amount;
+        } else if (tx.type === 'PENGELUARAN' || tx.type === 'TABUNGAN') {
+          balance -= tx.amount;
+        } else if (tx.type === 'PENYESUAIAN') {
+          balance += tx.amount; // Bisa diinput plus/minus di form jika perlu
+        }
+
+        // Akumulasi tabungan tahun berjalan
+        if (tx.type === 'TABUNGAN' && tx.datetime.startsWith(currentYear)) {
+          annualSavings += tx.amount;
+        }
+      });
+
+      document.getElementById('currentBalanceDisplay').innerText = formatRp(balance);
+      document.getElementById('annualSavingsDisplay').innerText = formatRp(annualSavings);
+
+      // 2. Render Rekap Bulan Terpilih
+      renderMonthlyRecap();
+    }
+
+    function renderMonthlyRecap() {
+      const selectedMonth = document.getElementById('monthFilter').value; // Format: YYYY-MM
+      const monthlyTx = allTransactions.filter(t => t.datetime.startsWith(selectedMonth));
+
+      let totalExpense = 0;
+      let totalIncome = 0;
+      let totalSavings = 0;
+      const categoryMap = {};
+
+      monthlyTx.forEach(t => {
+        if (t.type === 'PENGELUARAN') {
+          totalExpense += t.amount;
+          categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
+        } else if (t.type === 'PEMASUKAN') {
+          totalIncome += t.amount;
+        } else if (t.type === 'TABUNGAN') {
+          totalSavings += t.amount;
+        }
+      });
+
+      document.getElementById('recapExpense').innerText = formatRp(totalExpense);
+      document.getElementById('recapIncome').innerText = formatRp(totalIncome);
+      document.getElementById('recapSavings').innerText = formatRp(totalSavings);
+      document.getElementById('txCountBadge').innerText = `${monthlyTx.length} mutasi`;
+
+      // Render Tabel Mutasi Bulan Terpilih
+      const tbody = document.getElementById('txTableBody');
+      if (monthlyTx.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400">Tidak ada transaksi di bulan ini.</td></tr>`;
+      } else {
+        tbody.innerHTML = monthlyTx.map(t => {
+          const dateObj = new Date(t.datetime);
+          const formattedDate = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+          const formattedTime = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+          
+          let colorClass = "text-slate-800";
+          let sign = "";
+          if (t.type === 'PENGELUARAN') { colorClass = "text-rose-600"; sign = "-"; }
+          if (t.type === 'PEMASUKAN' || t.type === 'UANG_JAJAN') { colorClass = "text-emerald-600"; sign = "+"; }
+          if (t.type === 'TABUNGAN') { colorClass = "text-indigo-600"; sign = "-"; }
+
+          return `
+            <tr class="hover:bg-slate-50">
+              <td class="py-2.5 px-3">
+                <div class="font-bold">${formattedDate}</div>
+                <div class="text-[10px] text-slate-400">${formattedTime}</div>
+              </td>
+              <td class="py-2.5 px-3">
+                <div class="font-medium text-slate-800">${t.note}</div>
+                <div class="text-[10px] text-slate-400">${t.category !== '-' ? t.category : t.type}</div>
+              </td>
+              <td class="py-2.5 px-3 text-right font-bold ${colorClass}">
+                ${sign}${formatRp(t.amount)}
+              </td>
+              <td class="py-2.5 px-2 text-center">
+                <button onclick="window.deleteTransaction('${t.id}')" class="text-slate-300 hover:text-rose-600 text-sm font-bold">&times;</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // Render Pie Chart
+      renderPieChart(categoryMap);
+    }
+
+    document.getElementById('monthFilter').addEventListener('change', renderMonthlyRecap);
+
+    function renderPieChart(categoryMap) {
+      const ctx = document.getElementById('expenseChart').getContext('2d');
+      const labels = Object.keys(categoryMap);
+      const data = Object.values(categoryMap);
+
+      if (chartInstance) chartInstance.destroy();
+
+      if (labels.length === 0) {
+        document.getElementById('chartEmptyNotice').classList.remove('hidden');
+        return;
+      }
+      document.getElementById('chartEmptyNotice').classList.add('hidden');
+
+      chartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: [
+              '#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    window.deleteTransaction = async (id) => {
+      if (confirm("Hapus transaksi ini?")) {
+        await deleteDoc(doc(db, `users/${currentUser.uid}/transactions/${id}`));
+      }
+    };
+
+    // EKSPOR CSV RAPI (KOMPATIBEL DENGAN EXCEL ID)
+    document.getElementById('btnExportCSV').addEventListener('click', () => {
+      if (allTransactions.length === 0) return alert("Belum ada data transaksi.");
+
+      // Gunakan pemisah koma dan UTF-8 BOM agar rapi di Excel
+      let csvContent = "\uFEFFTanggal,Jam,Jenis Mutasi,Kategori,Keterangan,Nominal\n";
+      
+      const sorted = [...allTransactions].sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
+      sorted.forEach(t => {
+        const d = new Date(t.datetime);
+        const dateStr = d.toLocaleDateString('id-ID');
+        const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        const cleanNote = `"${(t.note || '').replace(/"/g, '""')}"`;
+        csvContent += `${dateStr},${timeStr},${t.type},${t.category},${cleanNote},${t.amount}\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Rekap_Keuangan_Semua_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // BERSIHKAN DATA
+    document.getElementById('btnPurgeData').addEventListener('click', async () => {
+      const confirmWord = prompt("Ketik kata 'HAPUS' dengan huruf kapital untuk mengosongkan seluruh data transaksi:");
+      if (confirmWord === 'HAPUS') {
+        const snap = await getDocs(collection(db, `users/${currentUser.uid}/transactions`));
+        const deletePromises = snap.docs.map(d => deleteDoc(d.ref));
+        await Promise.all(deletePromises);
+        alert("Seluruh data transaksi berhasil dibersihkan!");
+      }
+    });
+
+    // NAVIGASI TAB
+    const tabs = document.querySelectorAll('.nav-tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => {
+          t.classList.remove('active', 'text-slate-900', 'font-bold');
+          t.classList.add('text-slate-400', 'font-medium');
+        });
+        tab.classList.add('active', 'text-slate-900', 'font-bold');
+        tab.classList.remove('text-slate-400', 'font-medium');
+
+        document.getElementById('tab-input').classList.add('hidden');
+        document.getElementById('tab-recap').classList.add('hidden');
+        document.getElementById('tab-settings').classList.add('hidden');
+
+        document.getElementById(tab.dataset.tab).classList.remove('hidden');
+      });
+    });
+
+    // Toggle tampilan dropdown kategori jika bukan Pengeluaran/Pemasukan
+    document.getElementById('txType').addEventListener('change', (e) => {
+      const group = document.getElementById('categoryGroup');
+      if (e.target.value === 'PENGELUARAN' || e.target.value === 'PEMASUKAN') {
+        group.classList.remove('opacity-40', 'pointer-events-none');
+      } else {
+        group.classList.add('opacity-40', 'pointer-events-none');
+      }
+    });
+  </script>
+</body>
+</html>

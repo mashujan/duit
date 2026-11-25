@@ -119,7 +119,16 @@
               <div>
                 <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Nominal (Rp)</label>
                 <input type="text" inputmode="numeric" id="txAmount" required placeholder="Contoh: 25.000" class="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400 outline-none">
+                
+                <!-- CHECKBOX BIAYA ADMIN (+2.500) -->
+                <div id="adminFeeContainer" class="mt-2 flex items-center gap-2">
+                  <input type="checkbox" id="checkAdminFee" class="w-4 h-4 text-slate-900 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded cursor-pointer">
+                  <label for="checkAdminFee" class="text-xs font-medium text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+                    + Biaya Admin Transfer (Rp 2.500)
+                  </label>
+                </div>
               </div>
+
               <div id="categoryGroup">
                 <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Kategori</label>
                 <select id="txCategory" class="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400 outline-none">
@@ -157,13 +166,11 @@
 
       <!-- TAB 2: REKAP BULANAN & PENYESUAIAN -->
       <section id="tab-recap" class="hidden space-y-4">
-        <!-- Filter Periode -->
         <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
           <label class="text-xs font-bold text-slate-600 dark:text-slate-300">Pilih Periode:</label>
           <input type="month" id="monthFilter" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-1.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-slate-900">
         </div>
 
-        <!-- Rangkuman Angka -->
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center text-xs">
           <div class="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
             <span class="text-slate-400 block mb-1">Total Belanja</span>
@@ -298,15 +305,15 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 1. CONFIG FIREBASE
+    // 1. CONFIG FIREBASE (MILIKMU)
     const firebaseConfig = {
-    apiKey: "AIzaSyD7fsmofxp9wmnshho5JCr4Lhr_03hwV38",
-    authDomain: "duit-rbk.firebaseapp.com",
-    projectId: "duit-rbk",
-    storageBucket: "duit-rbk.firebasestorage.app",
-    messagingSenderId: "742646880590",
-    appId: "1:742646880590:web:408fd19c7e7438ccabe61f"
-  };
+      apiKey: "AIzaSyD7fsmofxp9wmnshho5JCr4Lhr_03hwV38",
+      authDomain: "duit-rbk.firebaseapp.com",
+      projectId: "duit-rbk",
+      storageBucket: "duit-rbk.firebasestorage.app",
+      messagingSenderId: "742646880590",
+      appId: "1:742646880590:web:408fd19c7e7438ccabe61f"
+    };
 
     // 2. EMAIL GOOGLE PRIBADIMU
     const MY_ALLOWED_EMAIL = "rainerbenedictk@gmail.com";
@@ -330,7 +337,7 @@
     ];
     let chartInstance = null;
 
-    // FITUR 2: FORMAT RIBUAN OTOMATIS SAAT MENGETIK
+    // FORMAT RIBUAN OTOMATIS SAAT MENGETIK
     function attachThousandSeparator(inputEl) {
       inputEl.addEventListener('input', (e) => {
         let val = e.target.value.replace(/\D/g, '');
@@ -347,23 +354,30 @@
     const cleanNumber = (formattedStr) => Number(String(formattedStr || '0').replace(/\./g, ''));
     const formatRp = (num) => "Rp " + Number(num || 0).toLocaleString("id-ID");
 
-    // FITUR 5: PERGANTIAN DROPDOWN INSTAN TANPA FADE
-    function refreshCategorySelect() {
+    // LOGIKA PERGANTIAN JENIS TRANSAKSI & TAMPILAN CHECKBOX ADMIN
+    function refreshFormTypeView() {
       const type = document.getElementById('txType').value;
       const select = document.getElementById('txCategory');
-      const group = document.getElementById('categoryGroup');
+      const categoryGroup = document.getElementById('categoryGroup');
+      const adminContainer = document.getElementById('adminFeeContainer');
+      const checkAdminFee = document.getElementById('checkAdminFee');
 
       if (type === 'PENGELUARAN') {
-        group.classList.remove('hidden');
+        categoryGroup.classList.remove('hidden');
+        adminContainer.classList.remove('hidden');
         select.innerHTML = expenseCategories.map(c => `<option value="${c}">${c}</option>`).join('');
       } else if (type === 'PEMASUKAN') {
-        group.classList.remove('hidden');
+        categoryGroup.classList.remove('hidden');
+        adminContainer.classList.add('hidden');
+        checkAdminFee.checked = false;
         select.innerHTML = incomeCategories.map(c => `<option value="${c}">${c}</option>`).join('');
       } else {
-        group.classList.add('hidden');
+        categoryGroup.classList.add('hidden');
+        adminContainer.classList.add('hidden');
+        checkAdminFee.checked = false;
       }
     }
-    document.getElementById('txType').addEventListener('change', refreshCategorySelect);
+    document.getElementById('txType').addEventListener('change', refreshFormTypeView);
 
     // DARK MODE
     const btnDarkMode = document.getElementById('btnDarkMode');
@@ -450,7 +464,7 @@
         if (data.incomeCategories) incomeCategories = data.incomeCategories;
         if (data.quotes) customQuotes = data.quotes;
       }
-      refreshCategorySelect();
+      refreshFormTypeView();
       renderCategorySettings();
       renderQuoteSettings();
     }
@@ -458,7 +472,7 @@
     async function saveSettings() {
       const docRef = doc(db, `users/${currentUser.uid}/meta/settings`);
       await setDoc(docRef, { expenseCategories, incomeCategories, quotes: customQuotes });
-      refreshCategorySelect();
+      refreshFormTypeView();
       renderCategorySettings();
       renderQuoteSettings();
     }
@@ -549,7 +563,7 @@
       }, 7000);
     }
 
-    // LISTENER TRANSAKSI
+    // LISTENER TRANSAKSI REALTIME
     function initRealtimeListener() {
       const q = query(collection(db, `users/${currentUser.uid}/transactions`), orderBy('datetime', 'desc'));
       onSnapshot(q, (snapshot) => {
@@ -559,7 +573,7 @@
       });
     }
 
-    // SIMPAN TRANSAKSI
+    // SIMPAN TRANSAKSI (DENGAN BIAYA ADMIN OTOMATIS)
     document.getElementById('txForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('btnSubmitTx');
@@ -568,14 +582,25 @@
 
       try {
         const type = document.getElementById('txType').value;
-        const amount = cleanNumber(document.getElementById('txAmount').value);
+        let amount = cleanNumber(document.getElementById('txAmount').value);
         const category = (type === 'PENGELUARAN' || type === 'PEMASUKAN') ? document.getElementById('txCategory').value : '-';
+        const hasAdminFee = (type === 'PENGELUARAN' && document.getElementById('checkAdminFee').checked);
+
+        // Jika dicentang, otomatis tambahkan Rp 2.500
+        if (hasAdminFee) {
+          amount += 2500;
+        }
         
+        let rawNote = document.getElementById('txNote').value.trim();
         let defaultNote = "Transaksi";
         if (type === 'UANG_JAJAN') defaultNote = "Uang Bulanan Masuk";
         else if (type === 'TABUNGAN') defaultNote = "Tabungan Sisa Rekening";
         
-        const note = document.getElementById('txNote').value.trim() || defaultNote;
+        let note = rawNote || defaultNote;
+        if (hasAdminFee) {
+          note += " (+Admin 2.5rb)";
+        }
+
         const datetime = document.getElementById('txDatetime').value;
 
         await addDoc(collection(db, `users/${currentUser.uid}/transactions`), {
@@ -587,8 +612,10 @@
           createdAt: Date.now()
         });
 
+        // Reset form
         document.getElementById('txAmount').value = '';
         document.getElementById('txNote').value = '';
+        document.getElementById('checkAdminFee').checked = false;
         isTimeManuallyEdited = false;
         updateLiveClock();
       } catch (err) {
@@ -634,7 +661,7 @@
       alert("Saldo berhasil disesuaikan secara akurat!");
     });
 
-    // HITUNG ULANG SALDO
+    // REKALKULASI SALDO
     function recalculateAndRender() {
       let balance = 0;
       let annualSavings = 0;
@@ -663,7 +690,7 @@
       renderMonthlyRecap();
     }
 
-    // FITUR 4: PERBAIKAN HOVER WARNA PADA TABEL RIWAYAT TRANSAKSI
+    // RENDER REKAP
     function renderMonthlyRecap() {
       const selectedMonth = document.getElementById('monthFilter').value;
       const monthlyTx = allTransactions.filter(t => t.datetime.startsWith(selectedMonth));
@@ -823,7 +850,7 @@
       }
     });
 
-    // FITUR 1: NAVIGASI TAB BOTTOM BAR MERATA & SELURUH AREA BISA DIKLIK
+    // TAB BOTTOM BAR
     const tabs = document.querySelectorAll('.nav-tab');
     tabs.forEach(tab => {
       tab.addEventListener('click', (e) => {
